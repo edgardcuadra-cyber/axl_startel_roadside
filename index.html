@@ -924,7 +924,7 @@ document.getElementById("screen").addEventListener("click",e=>{
     case "callMember": return callMember();
     case "callNow": if(S.busy) return; S.busy=true; render();
       return requestCallback(S.screen==="rsaSent"?"roadside":"member").finally(()=>{ S.busy=false; render(); });
-    case "chat": S.drawer=false; return WEB.ready() ? WEB.open() : openChat();
+    case "chat": S.drawer=false; return WEB.enabled() ? WEB.open() : openChat();
     case "send": { const i=document.getElementById("chatin"); return send(i&&i.value); }
     case "ring": return ring();
     case "answer": S.ringing=false; S.screen="oncall"; S.secs=4; return render();
@@ -1057,7 +1057,7 @@ function presenterPanel(){
     <div class="kv">Genesys sign-in <b>${t?"Connected":"Not connected"}</b></div>
     <div class="kv">Member care queue <b>${LIVE.queueName||LIVE.queueId||"—"}</b></div>
     <div class="kv">Roadside queue <b>${LIVE.roadsideQueueName||(LIVE.roadsideQueueId?"set":"same as member care")}</b></div>
-    <div class="kv">Web Messenger <b>${WEB.enabled()?(WEB.ready()?"Loaded":"Loading…"):"Off (mock chat)"}</b></div>
+    <div class="kv">Web Messenger <b>${WEB.enabled()?(WEB.failed?"Failed to load":(WEB.ready()?"Loaded":"Loading…")):"Off (mock chat)"}</b></div>
     <input id="cbnum" type="tel" placeholder="Phone to call, e.g. +14165550142" value="${cbNumber()}">
     <button class="cta ghost" data-act="saveNum">Save phone number (this device only)</button>
     ${t ? `<button class="cta ghost" data-act="gcForget">Disconnect Genesys</button>`
@@ -1068,28 +1068,51 @@ function presenterPanel(){
 }
 
 /* ---------------- Genesys Web Messenger (chat) ---------------- */
+// With chat:"web", Chat With Us only ever opens Genesys Web Messenger. The scripted chat is used only when chat:"mock".
 const WEB = {
-  loaded:false,
+  messengerReady:false, failed:false, pendingOpen:false,
   cfg(){ return Object.assign({chat:"mock",environment:"prod",deploymentId:""}, LIVE.webMessenger||{}); },
   enabled(){ const c=this.cfg(); return c.chat==="web" && !!c.deploymentId; },
-  ready(){ return this.enabled() && this.loaded && typeof window.Genesys==="function"; },
+  ready(){ return this.enabled() && this.messengerReady && typeof window.Genesys==="function"; },
+  host(){ const r=this.cfg().environment.replace(/^prod-?/,""); return r ? `apps.${r}.pure.cloud` : "apps.mypurecloud.com"; },
   load(){
     if(!this.enabled()) return;
-    const c=this.cfg(), region=c.environment.replace(/^prod-/,"");
-    const host = region==="prod" ? "apps.mypurecloud.com" : `apps.${region}.pure.cloud`;
+    const c=this.cfg();
+    // Genesys Web Messenger deployment snippet (Admin > Message > Messenger Deployments), values from config.js
     (function (g, e, n, es, ys) {
-      g["_genesysJs"] = e; g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
-      g[e].t = 1 * new Date(); g[e].c = es;
-      ys = document.createElement("script"); ys.async = 1; ys.src = n; ys.charset = "utf-8";
-      ys.onload = () => { WEB.loaded=true; }; ys.onerror = () => { WEB.loaded=false; console.warn("Web Messenger failed to load; using mock chat"); };
-      document.head.appendChild(ys);
-    })(window, "Genesys", `https://${host}/genesys-bootstrap/genesys.min.js`, { environment: c.environment, deploymentId: c.deploymentId });
+      g['_genesysJs'] = e;
+      g[e] = g[e] || function () {
+        (g[e].q = g[e].q || []).push(arguments)
+      };
+      g[e].t = 1 * new Date();
+      g[e].c = es;
+      ys = document.createElement('script'); ys.async = 1; ys.src = n; ys.charset = 'utf-8'; document.head.appendChild(ys);
+      ys.onerror = () => WEB.fail("Couldn't load Web Messenger from "+WEB.host());
+    })(window, 'Genesys', `https://${this.host()}/genesys-bootstrap/genesys.min.js`, {
+      environment: c.environment,
+      deploymentId: c.deploymentId
+    });
     Genesys("subscribe","Database.ready",()=>WEB.setAttrs());
-    Genesys("subscribe","Launcher.ready",()=>Genesys("command","Launcher.hide",{},()=>{},()=>{}));
+    Genesys("subscribe","Messenger.ready",()=>{ WEB.messengerReady=true; WEB.failed=false; if(WEB.pendingOpen){ WEB.pendingOpen=false; WEB.open(); } });
+    // Launcher visibility is "Hide until triggered by business logic": hide it again when the member closes Messenger.
     Genesys("subscribe","Messenger.closed",()=>Genesys("command","Launcher.hide",{},()=>{},()=>{}));
   },
-  setAttrs(){ if(!this.ready()) return; const a={...attrs(),entryPoint:"contact_us"}; Genesys("command","Database.set",{messaging:{customAttributes:a}}); return a; },
-  open(){ this.setAttrs(); Genesys("command","Messenger.open",{},()=>{},()=>openChat()); }
+  setAttrs(){ if(!this.enabled()||typeof window.Genesys!=="function") return; const a={...attrs(),entryPoint:"contact_us"}; Genesys("command","Database.set",{messaging:{customAttributes:a}}); return a; },
+  fail(msg){ this.failed=true; this.pendingOpen=false; console.warn(msg); if(S){ toast("Chat unavailable",msg,3600); } },
+  open(){
+    if(this.failed) return this.fail("Web Messenger didn't load. Check the deployment and allowed domains.");
+    if(!this.ready()){
+      this.pendingOpen=true; toast("Opening chat","Connecting to StarAuto Member Care…",1800);
+      setTimeout(()=>{ if(WEB.pendingOpen) WEB.fail("Web Messenger is taking too long to load."); },15000);
+      return;
+    }
+    this.setAttrs();
+    Genesys("command","Messenger.open",{},()=>{},err=>{
+      const m=String((err&&err.message)||err||"");
+      if(/already open/i.test(m)) return;          // already showing: nothing to do
+      WEB.fail("Couldn't open Web Messenger ("+m.slice(0,60)+")");
+    });
+  }
 };
 
 /* ---------------- app mode + install ---------------- */
