@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StarAuto (Genesys concept)</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f2a43">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="StarAuto">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Open+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --navy:#1d2757; --blue:#2554a3; --blue-2:#3b6fd0; --sky:#e9effa; --gold:#b8922b; --gold-2:#d9b44a;
+  --ink:#1b1f2a; --muted:#6a7183; --line:#e3e6ee; --bg:#f3f5f9; --ok:#1f8a4c; --warn:#c4721a; --red:#c8302c;
+  --code-bg:#0f1525; --code-ink:#d6e2ff; --key:#8fb4ff; --str:#a5e3a1; --num:#ffcf7a;
+  /* app look */
+  --rs:#0f2a43; --rs-2:#0b2136; --rs-line:#244a73; --btn:#2466a8; --link:#2366a8; --tab-on:#2f6db1;
+  --txt:#3a3f45; --txt-d:#2b2f33; --txt-m:#5f666e; --grey:#f0f0f0; --grey-2:#e4e4e4; --hair:#e6e8eb; --sign:#b3261e;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Open Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#e8ebf2;color:var(--ink)}
+.lato{font-family:Lato,"Open Sans",sans-serif}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 20px;background:var(--navy);color:#fff}
+header.top h1{font-size:16px;margin:0;font-weight:600}
+header.top .tag{font-size:11px;background:rgba(255,255,255,.14);padding:4px 8px;border-radius:999px;white-space:nowrap}
+header.top button{background:#fff;color:var(--navy);border:0;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer}
+header.top a{color:#fff;font-size:12px;font-weight:600;text-decoration:none;border:1px solid rgba(255,255,255,.35);padding:5px 10px;border-radius:6px;white-space:nowrap}
+main{display:grid;grid-template-columns:420px;justify-content:center;gap:20px;padding:20px;max-width:1500px;margin:0 auto}
+@media (max-width:980px){main{grid-template-columns:1fr}}
+
+/* ---------- phone frame ---------- */
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.phone{width:390px;height:820px;background:#111;border-radius:46px;padding:12px;box-shadow:0 20px 50px rgba(20,30,60,.35);position:relative}
+.screen{width:100%;height:100%;background:#fff;border-radius:36px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.status{height:34px;flex:0 0 34px;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font-size:12px;font-weight:700}
+.body{flex:1;overflow-y:auto;background:#fff;-webkit-overflow-scrolling:touch}
+.note{font-size:11px;color:var(--muted);text-align:center;max-width:390px}
+
+/* ---------- tab bar ---------- */
+.tabbar{flex:0 0 62px;display:flex;border-top:1px solid #e2e2e2;background:#fff}
+.tabbar button{flex:1;border:0;background:none;font:400 11.5px "Open Sans",sans-serif;color:#4a4f55;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:0}
+.tabbar button.on{color:var(--tab-on);font-size:12.5px}
+.tabbar svg{width:25px;height:25px}
+
+/* ---------- shared bits ---------- */
+.nav{background:var(--rs);color:#fff;display:flex;align-items:center;padding:12px 12px 14px;flex:0 0 auto;position:relative;box-shadow:0 2px 3px rgba(0,0,0,.18);z-index:2}
+.nav h1{flex:1;text-align:center;margin:0;font:700 17px Lato,sans-serif;padding:0 60px}
+.nav .bk{position:absolute;left:12px;width:30px;height:30px;border-radius:50%;background:#f2f2f2;color:#333;display:flex;align-items:center;justify-content:center;cursor:pointer;border:0}
+.nav .bk svg{width:14px;height:14px}
+.nav .cx{position:absolute;right:14px;font-size:14px;cursor:pointer;opacity:.95}
+.cta{display:block;width:100%;border:0;border-radius:8px;background:var(--btn);color:#fff;font:700 15px Lato,sans-serif;padding:14px 12px;cursor:pointer;text-align:center}
+.cta.big{font-size:16px;padding:15px}
+.cta.ghost{background:#fff;color:var(--btn);border:1.5px solid var(--btn)}
+.cta:disabled{opacity:.5;cursor:default}
+.link{color:var(--link);font:700 13.5px Lato,sans-serif;cursor:pointer}
+
+/* ---------- home ---------- */
+.hg{position:relative;padding:12px 16px 14px;color:#fff;overflow:hidden;
+  background:linear-gradient(118deg,#6a5226 0%,#9c7f45 26%,#c9b07b 44%,#b89b60 56%,#8d7036 76%,#634b22 100%)}
+.hg:before,.hg:after{content:"";position:absolute;pointer-events:none}
+.hg:before{right:-30px;top:-60px;width:150px;height:300px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.05));transform:skewX(-22deg)}
+.hg:after{right:96px;top:40px;width:46px;height:200px;background:rgba(255,255,255,.08);transform:skewX(22deg)}
+.hg .row{display:flex;align-items:center;position:relative;z-index:1}
+.hg .mark{font:900 26px/1 Lato,sans-serif;letter-spacing:.02em}
+.hg .div{width:1px;height:26px;background:rgba(255,255,255,.8);margin:0 10px}
+.hg .tier{font:400 15px Lato,sans-serif}
+.hg .bell{margin-left:auto;width:34px;height:34px;border-radius:50%;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hg .bell svg{width:16px;height:16px}
+.hg .wb{font:400 14px Lato,sans-serif;margin-top:8px;position:relative;z-index:1}
+.hg .nm{font:900 23px/1.1 Lato,sans-serif;text-transform:uppercase;letter-spacing:.01em}
+.hg .mc{margin-left:auto;border:1.5px solid #fff;border-radius:999px;padding:5px 13px;font:700 11px Lato,sans-serif;letter-spacing:.06em;display:flex;gap:6px;align-items:center;cursor:pointer;text-transform:uppercase}
+.hg .mc svg{width:15px;height:12px}
+.sec{padding:16px 0 18px}
+.sec h3{font:700 19px Lato,sans-serif;color:var(--txt-d);margin:0 16px 12px}
+.band{background:var(--grey)}
+.car{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 6px;scrollbar-width:none}
+.car::-webkit-scrollbar{display:none}
+.promo{flex:0 0 268px;height:178px;border-radius:10px;padding:15px 15px 14px;color:#fff;scroll-snap-align:start;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.promo.blue{background:linear-gradient(135deg,#123a86 0%,#1a52b2 55%,#2c7fe6 100%)}
+.promo.blue:before{content:"";position:absolute;left:-10px;top:-10px;width:170px;height:70px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 26px,rgba(255,255,255,0) 26px 34px);opacity:.9}
+.promo.grey{background:linear-gradient(135deg,#71767c,#9aa0a6)}
+.promo h4{font:700 15px/1.2 Lato,sans-serif;margin:0 0 7px;max-width:64%;position:relative}
+.promo p{font-size:11.5px;line-height:1.45;margin:0;max-width:62%;position:relative}
+.promo .lm{margin-top:auto;font:700 13.5px Lato,sans-serif;position:relative}
+.promo .art{position:absolute;right:10px;top:34px}
+.oc{flex:0 0 268px;height:178px;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.16);padding:14px 16px;scroll-snap-align:start;display:flex;flex-direction:column;color:var(--txt-d)}
+.oc .fuel{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ffd23f,#f2a516 65%,#e2611a);display:flex;align-items:center;justify-content:center;color:#b3261e}
+.oc .fuel svg{width:24px;height:24px}
+.oc .t{font:700 14.5px Lato,sans-serif;margin-top:12px}
+.oc .amt{font:900 31px/1.15 Lato,sans-serif;color:var(--txt-d)}
+.oc .badge{width:48px;height:48px;border-radius:50%;background:#d4570f;color:#fff;font:900 11.5px/1.1 Lato,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center}
+.oc .d{font-size:13px;color:var(--txt);line-height:1.35}
+.oc .link{margin-top:auto}
+.saved{background:var(--grey-2);display:flex;gap:16px;align-items:center;padding:13px 16px}
+.saved svg{width:24px;height:24px;color:#5b6168;flex:0 0 auto}
+.saved b{font:700 13px "Open Sans",sans-serif;color:var(--txt-d);display:block}
+.saved span{color:var(--link);font-size:14px;cursor:pointer}
+.glance{background:var(--grey);padding:14px 16px 20px}
+.glance h3{font:700 19px Lato,sans-serif;color:var(--txt-d);margin:0 0 12px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.14);text-align:center}
+.tile .top{height:56px;display:flex;align-items:center;justify-content:center;color:#3b4046}
+.tile .top svg{width:34px;height:30px}
+.tile .lb{font-size:12.5px;color:var(--txt);padding:8px 6px 2px}
+.tile .v{font:900 18px Lato,sans-serif;color:var(--txt-d);padding:0 6px 10px}
+
+/* ---------- roadside ---------- */
+.rs{background:var(--rs);color:#fff;flex:1;display:flex;flex-direction:column;overflow-y:auto}
+.rs .ttl{font:700 18px Lato,sans-serif;text-align:center;margin:14px 0 6px}
+.rs .truck{display:flex;justify-content:center;margin:6px 0 2px}
+.rs h2{font:900 21px/1.2 Lato,sans-serif;text-align:center;margin:6px 18px 8px}
+.rs .lead{font-size:13.5px;line-height:1.45;text-align:center;margin:0 18px 14px;color:#eef2f6}
+.rs hr{border:0;border-top:1px solid var(--rs-line);margin:0 14px}
+.rs .two{display:grid;grid-template-columns:1fr 1fr;padding:14px 14px 0}
+.rs .two>div:last-child{border-left:1px solid var(--rs-line);padding-left:10px}
+.rs .sf{font:700 14.5px Lato,sans-serif;display:flex;gap:6px;align-items:center;color:#d9e2ec}
+.rs .sf svg{width:16px;height:16px}
+.rs .sm{font-size:12px;line-height:1.45;color:#b9c6d4;margin-top:4px}
+.rs .call{font:700 12.5px "Open Sans",sans-serif;color:#d9e2ec;margin-top:8px}
+.rs .foot{margin-top:auto;padding:16px 14px 16px}
+
+/* map */
+.mapwrap{flex:1;position:relative;isolation:isolate;z-index:0;background:#eceae6;overflow:hidden}
+#lmap{position:absolute;inset:0;z-index:0}
+.mpin{position:absolute;left:50%;top:50%;width:36px;height:46px;transform:translate(-50%,-92%);z-index:500;pointer-events:none}
+.mctl{position:absolute;right:10px;bottom:14px;z-index:500;display:flex;flex-direction:column;gap:10px;align-items:center}
+.mctl button{width:38px;height:38px;border-radius:50%;border:0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#333}
+.mctl .zm{display:flex;flex-direction:column;background:#fff;border-radius:19px;box-shadow:0 1px 4px rgba(0,0,0,.3);overflow:hidden}
+.mctl .zm button{box-shadow:none;border-radius:0;height:36px;font-size:22px;font-weight:300}
+.mctl .zm button+button{border-top:1px solid #e3e3e3}
+.leaflet-control-attribution{font-size:8px!important}
+.bmap{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:38% 37%;transform-origin:38% 37%;transition:transform .2s;z-index:0}
+.mattr{position:absolute;left:6px;top:6px;z-index:500;font-size:8px;background:rgba(255,255,255,.85);padding:1px 5px;border-radius:3px;color:#333}
+.mfoot{padding:14px 14px 18px;background:#fff;flex:0 0 auto}
+.addrbox{border:1px solid #cfd3d8;border-radius:6px;padding:11px 12px;font-size:14px;color:var(--txt-d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:12px}
+
+/* bottom sheet */
+.shade{position:absolute;inset:0;background:rgba(5,14,24,.72);z-index:20}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:42px;background:#fff;border-radius:16px 16px 0 0;z-index:21;animation:up .25s ease;overflow-y:auto}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.sheet .hd{width:36px;height:4px;border-radius:2px;background:#888;margin:8px auto 0}
+.sheet .sh{position:relative;text-align:center;font:700 16px Lato,sans-serif;color:var(--txt-d);padding:14px 40px 16px}
+.sheet .sh .x{position:absolute;right:14px;top:10px;width:24px;height:24px;cursor:pointer;color:#555}
+.lt{display:flex;align-items:center;gap:12px;margin:0 14px;padding:10px 0;border-bottom:1px solid var(--hair);cursor:pointer}
+.lt .ic{width:44px;height:44px;border-radius:50%;background:#e6f1fc;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.lt .ic svg{width:28px;height:28px}
+.lt b{font:700 15px Lato,sans-serif;color:var(--txt)}
+
+/* confirm + status */
+.gbody{flex:1;overflow-y:auto;background:var(--grey);padding:12px 14px 18px}
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.14);padding:14px;margin-bottom:12px}
+.card .ch{display:flex;align-items:center;gap:8px;font:700 15px Lato,sans-serif;color:var(--txt-d);margin-bottom:8px}
+.card .ch svg{width:20px;height:20px;color:var(--btn)}
+.card .ch .ed{margin-left:auto;font:700 13px Lato,sans-serif;color:var(--link);cursor:pointer}
+.card .ad{font-size:14px;color:var(--txt-d);line-height:1.4}
+.chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:#e6f1fc;color:#1e4f86;border-radius:999px;padding:4px 10px;font:700 12px Lato,sans-serif}
+.kvs{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13.5px}
+.kvs span{color:var(--txt-m)}
+.kvs b{color:var(--txt-d);font-weight:600;text-align:right}
+.hint{font-size:12px;color:var(--txt-m);line-height:1.45;margin:2px 2px 12px}
+.done{flex:1;background:var(--rs);color:#fff;display:flex;flex-direction:column;align-items:center;padding:40px 22px 18px;text-align:center}
+.done .ok{width:74px;height:74px;border-radius:50%;background:#2e7d4f;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.done .ok svg{width:38px;height:38px}
+.done h2{font:900 22px Lato,sans-serif;margin:0 0 8px}
+.done p{font-size:13.5px;line-height:1.5;color:#dbe4ee;margin:0 0 6px}
+.done .ref{font:700 12px Lato,sans-serif;letter-spacing:.08em;color:#9fb4ca;margin-top:8px;text-transform:uppercase}
+.done .foot{margin-top:auto;width:100%;display:flex;flex-direction:column;gap:10px}
+.done .cta.ghost{background:transparent;color:#fff;border-color:#6d8bad}
+.st-pill{display:inline-block;background:#e3f4ea;color:#1f7a45;font:700 11.5px Lato,sans-serif;padding:4px 10px;border-radius:999px}
+.eta{font:900 30px Lato,sans-serif;color:var(--txt-d);margin-top:8px}
+.steps{display:flex;gap:4px;margin:10px 0 12px}
+.steps i{flex:1;height:5px;border-radius:3px;background:#dfe4ee}
+.steps i.on{background:var(--btn)}
+
+.mbox{width:100%;background:rgba(255,255,255,.07);border:1px solid #2c4c70;border-radius:10px;padding:8px 14px;margin-top:18px;text-align:left}
+.mrow{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0}
+.mrow+.mrow{border-top:1px solid rgba(255,255,255,.09)}
+.mrow span{color:#9fb4ca}
+.mrow b{color:#fff;font-weight:600;text-align:right}
+.mbox .auth{color:#7fd6a2}
+.sent{font-size:11.5px;color:#9fb4ca;margin-top:10px}
+/* drawer */
+.dshade{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:30}
+.drawer{position:absolute;top:0;bottom:0;right:0;width:90%;background:#fff;z-index:31;overflow-y:auto;animation:slide .25s ease;display:flex;flex-direction:column}
+@keyframes slide{from{transform:translateX(40%);opacity:.3}to{transform:none;opacity:1}}
+.drawer .dh{display:flex;align-items:center;gap:14px;padding:22px 16px 12px 22px}
+.drawer .mini{width:40px;height:26px;border-radius:3px;background:linear-gradient(118deg,#6a5226,#c9b07b 50%,#7d6230);flex:0 0 auto}
+.drawer .dh b{display:block;font:900 22px/1.1 Lato,sans-serif;color:var(--txt-d)}
+.drawer .dh small{display:block;font-size:14px;color:var(--txt);text-transform:uppercase;margin-top:2px}
+.drawer .dh .x{margin-left:auto;width:24px;height:24px;cursor:pointer;color:#333}
+.mi{display:flex;align-items:center;gap:14px;padding:11px 22px;cursor:pointer;color:var(--txt-d)}
+.mi svg{width:22px;height:22px;flex:0 0 auto;color:#3d4247}
+.mi.b span{font:700 16.5px Lato,sans-serif}
+.mi.r span{font:400 15px "Open Sans",sans-serif}
+.mi.r svg{width:19px;height:19px}
+.mi:hover{background:#f6f7f9}
+.dgap{height:12px}
+.dline{border-top:1px solid #dcdcdc;margin:10px 0 0}
+.mi.so{color:var(--sign);padding:16px 22px}
+.mi.so svg{color:var(--sign)}
+.mi.so span{font:700 16px Lato,sans-serif}
+.dfoot{padding:16px 22px 26px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#444;line-height:1.7}
+.dfoot a{color:var(--link);display:block;margin-top:10px}
+
+/* contact */
+.cc{display:flex;gap:14px;align-items:flex-start;background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.15);padding:14px 14px 14px 10px;margin-bottom:10px;cursor:default}
+.cc.go{cursor:pointer}
+.cc.go:active{background:#f7f9fc}
+.cc .ci{width:64px;flex:0 0 64px;display:flex;justify-content:center;padding-top:4px}
+.cc .ci svg{width:46px;height:46px}
+.cc b{display:block;font:700 15px Lato,sans-serif;color:var(--txt-d);margin-bottom:3px}
+.cc p{margin:0;font-size:13.5px;line-height:1.45;color:var(--txt)}
+.cc .tag{display:inline-block;margin-top:7px;font:700 11px Lato,sans-serif;color:#1f7a45;background:#e3f4ea;border-radius:999px;padding:2px 8px}
+
+/* member card + rewards + presenter */
+.mcard{margin:16px;border-radius:14px;padding:16px;color:#fff;background:linear-gradient(118deg,#6a5226 0%,#9c7f45 26%,#c9b07b 44%,#b89b60 56%,#8d7036 76%,#634b22 100%);min-height:200px;position:relative;box-shadow:0 8px 20px rgba(80,60,10,.3)}
+.mcard h2{margin:6px 0 4px;font:900 20px Lato,sans-serif;text-transform:uppercase}
+.mcard .num{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;letter-spacing:.08em;margin-top:30px}
+.mcard small{opacity:.9;font-size:11px}
+.presenter{border:1px dashed #b9c3d9;border-radius:10px;padding:12px;font-size:12px;background:#fff}
+.presenter h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.presenter .kv{display:flex;justify-content:space-between;padding:4px 0;color:var(--muted)}
+.presenter .kv b{color:var(--ink)}
+.presenter input,.presenter textarea{width:100%;margin-top:8px;font-size:13px;border:1px solid #cfd3d8;border-radius:6px;padding:8px;font-family:inherit}
+.presenter textarea{font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.presenter .cta{margin-top:8px;padding:10px;font-size:13px}
+.livebadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:#e3f4ea;color:var(--ok);margin-left:6px;vertical-align:middle}
+
+/* login (unchanged) */
+.btn{flex:1;border:0;border-radius:8px;padding:11px 10px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--blue);color:#fff}
+.login{padding:28px 22px;display:flex;flex-direction:column;gap:12px;height:100%;background:linear-gradient(180deg,var(--navy),#27357a 55%,#fff 55%)}
+.login .brand{color:#fff;text-align:center;margin:20px 0 26px}
+.login .brand .badge{width:64px;height:64px;border-radius:50%;background:#fff;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:var(--navy);font-weight:900;font-size:13px;border:3px solid var(--red)}
+.login .brand h2{margin:0;font-size:20px}
+.login .brand p{margin:4px 0 0;font-size:12px;opacity:.85}
+.field{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px}
+.field small{display:block;color:var(--muted);font-size:10px;margin-bottom:2px}
+.login .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:10px;margin:0}
+.mfa{display:flex;gap:8px;justify-content:center}
+.mfa span{width:36px;height:44px;border:1.5px solid var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+
+/* chat (mock fallback) */
+.chat{flex:1;overflow-y:auto;background:#f4f6fa;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.35}
+.msg.bot{background:#fff;border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.agent{background:#fff;border:1px solid #bfe0cb;align-self:flex-start;border-bottom-left-radius:4px}
+.msg.me{background:var(--btn);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg .who{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:3px}
+.sys{align-self:center;font-size:10px;color:var(--muted);background:#e7ebf3;padding:4px 10px;border-radius:999px}
+.qr{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;background:#f4f6fa}
+.qr button{border:1.5px solid var(--btn);background:#fff;color:var(--btn);border-radius:999px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:#fff}
+.composer input{flex:1;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:13px;outline:none}
+.composer button{border:0;background:var(--btn);color:#fff;border-radius:999px;padding:0 14px;font-weight:700;cursor:pointer}
+
+/* call overlay */
+.ring{position:absolute;inset:0;background:linear-gradient(180deg,#0b1d30,#0f2a43);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:80px 30px 60px;z-index:40}
+.ring h2{margin:8px 0 4px;font:900 24px Lato,sans-serif}
+.ring p{margin:0;opacity:.8;font-size:13px}
+.ring .avatar{width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font:900 18px Lato,sans-serif;border:3px solid rgba(255,255,255,.4)}
+.ring .acts{display:flex;gap:60px}
+.ring .acts button{width:66px;height:66px;border-radius:50%;border:0;cursor:pointer;color:#fff;font-size:24px}
+.pulse{animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.45)}70%{box-shadow:0 0 0 22px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+.toast{position:absolute;left:12px;right:12px;top:42px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:12px;font-size:12px;z-index:50;display:flex;gap:10px;align-items:center;color:var(--txt-d)}
+.toast .ti{width:34px;height:34px;border-radius:8px;background:var(--rs);color:#fff;display:flex;align-items:center;justify-content:center;font:900 10px Lato,sans-serif;flex:0 0 auto}
+
+/* ---------- going live (desktop only) ---------- */
+.panel{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,60,.08);overflow:hidden}
+.panel > h2{margin:0;font-size:13px;padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--navy)}
+.panel > h2 .ct{margin-left:auto;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:500}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px}
+.pill.ok{background:#e3f4ea;color:var(--ok)}
+pre{margin:6px 0 0;background:var(--code-bg);color:var(--code-ink);font-size:11px;line-height:1.45;padding:10px 12px;border-radius:8px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace}
+pre .k{color:var(--key)} pre .s{color:var(--str)} pre .nm{color:var(--num)} pre .c{color:#7f8db0}
+.golive{max-width:1500px;margin:0 auto 40px;padding:0 20px;display:flex;flex-direction:column;gap:16px}
+.golive .panel{padding:0}
+.gl-body{padding:16px}
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:980px){.verdict{grid-template-columns:1fr}}
+.opt{border:1px solid var(--line);border-radius:10px;padding:14px}
+.opt.win{border:2px solid var(--ok);background:#f4fbf7}
+.opt h3{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:8px}
+.opt code{font-size:11px;background:#eef1f7;padding:2px 6px;border-radius:4px}
+.opt ul{margin:8px 0 0;padding-left:18px;font-size:12.5px;line-height:1.5}
+.scope{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px}
+.scope span{padding:4px 10px;border-radius:999px;font-weight:600}
+.s-live{background:#e3f4ea;color:var(--ok)}
+.s-mock{background:#f1f2f5;color:#4b5263}
+.arch{width:100%;height:auto;display:block}
+table.work{width:100%;border-collapse:collapse;font-size:12.5px}
+table.work th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:8px;border-bottom:2px solid var(--line)}
+table.work td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.work td:first-child{width:28px;color:var(--muted);font-variant-numeric:tabular-nums}
+table.work .where{font-size:11px;font-weight:700;white-space:nowrap}
+table.work input{transform:scale(1.15);cursor:pointer}
+table.work tr.done td{color:var(--muted);text-decoration:line-through}
+table.work tfoot td{font-weight:700;border-bottom:0}
+.prog{height:8px;background:#e7ebf3;border-radius:4px;overflow:hidden;margin:10px 0 2px}
+.prog i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.golive .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:980px){.golive .two{grid-template-columns:1fr}}
+.risk{font-size:12.5px;line-height:1.5;margin:0;padding-left:18px}
+.risk li{margin-bottom:6px}
+.verify{font-size:10px;font-weight:700;color:var(--warn);background:#fdf0e1;padding:1px 6px;border-radius:4px;margin-left:4px}
+
+/* ---------- installed-app / phone mode ---------- */
+body.app-mode{background:#fff;overscroll-behavior:none}
+body.app-mode header.top, body.app-mode .golive, body.app-mode .note{display:none}
+body.app-mode main{display:block;padding:0;max-width:none}
+body.app-mode .phone-wrap{display:block}
+body.app-mode .phone{width:100vw;height:100vh;height:100dvh;border-radius:0;padding:0;background:#fff;box-shadow:none}
+body.app-mode .screen{border-radius:0}
+body.app-mode .status{height:env(safe-area-inset-top);flex-basis:env(safe-area-inset-top);padding:0;font-size:0;overflow:hidden}
+body.app-mode .tabbar{flex-basis:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
+body.app-mode .composer,body.app-mode .mfoot,body.app-mode .rs .foot{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+body.app-mode .toast{top:calc(10px + env(safe-area-inset-top))}
+body.app-mode .sheet{top:calc(42px + env(safe-area-inset-top))}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>StarAuto member app with Genesys Cloud built in — concept mock</h1>
+  <span class="tag">Illustrative · fictional member data · not a production app</span>
+  <a href="#golive">Going live ↓</a>
+  <button id="reset">Reset demo</button>
+</header>
+
+<main>
+  <div class="phone-wrap">
+    <div class="phone"><div class="screen" id="screen"></div></div>
+    <div class="note">Tap through the app as a member would.</div>
+  </div>
+</main>
+
+<div class="golive" id="golive">
+  <section class="panel">
+    <h2>Going live: what we show for real on demo day</h2>
+    <div class="gl-body">
+      <div class="verdict">
+        <div class="opt win">
+          <h3><span class="pill ok">Live</span> Callback API — <code>POST /api/v2/conversations/callbacks</code></h3>
+          <ul>
+            <li><b>No named agent needed.</b> The callback goes to a queue and the next available demo agent gets it, the same way StarAuto would run it.</li>
+            <li><b>Context rides along.</b> <code>data</code> lands as participant attributes, so the callback script shows the member #, level and roadside request.</li>
+            <li><b>Real phone rings.</b> The agent accepts, Genesys dials the presenter's mobile, and the room hears it.</li>
+            <li><b>One API call from the page.</b> No backend to build for the demo.</li>
+          </ul>
+        </div>
+        <div class="opt">
+          <h3><span class="pill s-mock">Keep mocked</span> Create call — <code>POST /api/v2/conversations/calls/user/{userId}</code></h3>
+          <ul>
+            <li>Rings a <b>named agent's</b> phone first, then dials the member. No queueing, no next-available agent.</li>
+            <li>Fits one moment only: an agent already chatting with the member taps "Call member".</li>
+            <li>Adds a second live dependency (a specific agent on a specific station) for little extra value in the room.</li>
+            <li>We can mention it as the chat-to-voice option and show it in the inspector.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="scope">
+        <span class="s-live">LIVE: Call me → callback → agent accepts → presenter's phone rings</span>
+        <span class="s-mock">MOCKED: sign-in, Messenger SDK chat, roadside request, AI agent</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>How the live path fits together</h2>
+    <div class="gl-body">
+      <svg class="arch" viewBox="0 0 1200 230" role="img" aria-label="Live callback architecture">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6a7183"/></marker></defs>
+        <g font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13">
+          <rect x="10" y="60" width="200" height="90" rx="10" fill="#e9effa" stroke="#2554a3"/>
+          <text x="110" y="92" text-anchor="middle" font-weight="700" fill="#1d2757">This page</text>
+          <text x="110" y="112" text-anchor="middle" fill="#4b5263">GitHub Pages (static)</text>
+          <text x="110" y="132" text-anchor="middle" fill="#4b5263" font-size="11">presenter signs in once</text>
+
+          <rect x="290" y="10" width="200" height="70" rx="10" fill="#ffece5" stroke="#c2410c"/>
+          <text x="390" y="40" text-anchor="middle" font-weight="700" fill="#c2410c">Genesys login</text>
+          <text x="390" y="60" text-anchor="middle" fill="#4b5263" font-size="11">OAuth Code + PKCE → token</text>
+
+          <rect x="290" y="130" width="200" height="90" rx="10" fill="#ffece5" stroke="#c2410c"/>
+          <text x="390" y="160" text-anchor="middle" font-weight="700" fill="#c2410c">Genesys Cloud API</text>
+          <text x="390" y="180" text-anchor="middle" fill="#4b5263" font-size="11">POST /conversations/callbacks</text>
+          <text x="390" y="198" text-anchor="middle" fill="#4b5263" font-size="11">queue + script + data</text>
+
+          <rect x="570" y="130" width="190" height="90" rx="10" fill="#fff5d6" stroke="#946200"/>
+          <text x="665" y="160" text-anchor="middle" font-weight="700" fill="#946200">Demo queue</text>
+          <text x="665" y="180" text-anchor="middle" fill="#4b5263" font-size="11">demo_starauto_mobileprototype_Oct2026</text>
+          <text x="665" y="198" text-anchor="middle" fill="#4b5263" font-size="11">callback waits here</text>
+
+          <rect x="840" y="130" width="160" height="90" rx="10" fill="#e3f4ea" stroke="#1f8a4c"/>
+          <text x="920" y="160" text-anchor="middle" font-weight="700" fill="#1f8a4c">Demo agent</text>
+          <text x="920" y="180" text-anchor="middle" fill="#4b5263" font-size="11">Workspace · On Queue</text>
+          <text x="920" y="198" text-anchor="middle" fill="#4b5263" font-size="11">script shows member data</text>
+
+          <rect x="1060" y="60" width="130" height="90" rx="10" fill="#f1f2f5" stroke="#4b5263"/>
+          <text x="1125" y="92" text-anchor="middle" font-weight="700" fill="#1b1f2a">Presenter's</text>
+          <text x="1125" y="112" text-anchor="middle" font-weight="700" fill="#1b1f2a">mobile</text>
+          <text x="1125" y="132" text-anchor="middle" fill="#4b5263" font-size="11">PSTN call rings</text>
+
+          <path d="M210 90 L288 50" stroke="#6a7183" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+          <text x="220" y="58" fill="#6a7183" font-size="11">1 sign in</text>
+          <path d="M210 125 L288 165" stroke="#6a7183" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+          <text x="214" y="170" fill="#6a7183" font-size="11">2 Call me</text>
+          <path d="M490 175 L568 175" stroke="#6a7183" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+          <text x="503" y="168" fill="#6a7183" font-size="11">3 queued</text>
+          <path d="M760 175 L838 175" stroke="#6a7183" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+          <text x="770" y="168" fill="#6a7183" font-size="11">4 alert</text>
+          <path d="M1000 160 L1058 120" stroke="#6a7183" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+          <text x="985" y="128" fill="#6a7183" font-size="11">5 dial</text>
+        </g>
+      </svg>
+      <p class="why" style="font-size:12px;color:var(--muted);margin:8px 0 0">For the demo, the page holds a short-lived token for a demo user who can only create callbacks. In production, the app calls StarAuto's API gateway, which calls Genesys server-to-server.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Work to make "Call me" live <span class="ct" id="wkprog">0 of 0 done</span></h2>
+    <div class="gl-body">
+      <div class="prog"><i id="wkbar"></i></div>
+      <table class="work">
+        <thead><tr><th>#</th><th>Task</th><th>Where</th><th>Owner</th><th>Est.</th><th>Done</th></tr></thead>
+        <tbody id="worklist"></tbody>
+        <tfoot><tr><td></td><td>Total</td><td></td><td></td><td id="wktotal"></td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <h2>Page change: the live call</h2>
+      <div class="gl-body">
+        <p style="font-size:12.5px;margin:0 0 6px">Replaces the mocked <code>submitCb()</code> when the page runs in live mode. Everything else stays mocked.</p>
+        <pre id="livecode"></pre>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Settings and risks</h2>
+      <div class="gl-body">
+        <pre id="liveconfig" style="margin-top:0"></pre>
+        <ul class="risk" style="margin-top:12px">
+          <li><b>Public repo:</b> GitHub Pages on a free plan is public, and this page carries StarAuto's name and app layout. Use a private repo with Pages (needs a paid GitHub plan) or restrict access.</li>
+          <li><b>No secrets in the repo:</b> PKCE needs only the client ID. Never commit a client secret.</li>
+          <li><b>Caller ID:</b> outbound calls need a Genesys Cloud Voice or BYOC number on the demo org. Check that it dials Canadian mobiles.</li>
+          <li><b>Fallback:</b> if login or the API fails, the page drops back to mock mode and the story still runs.</li>
+          <li><b>Dry run:</b> run it end to end from the demo venue's network at least once.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ---------------- demo data (fictional member) ---------------- */
+const MEMBER = {
+  name:"Alex", fullName:"Alex Morgan", memberNumber:"620 2794 0000 4417 3", level:"Plus", status:"Active",
+  since:"2014", phone:"+1 416-555-0142", email:"alex.morgan@example.com",
+  starDollars:"14.20", fuelSavings:"$48.20", saved:"$126.35", roadsideUsed:"1 of 4",
+  vehicle:{type:"Passenger",year:"2025",make:"Mazda",model:"CX-5",color:"Black",drive:"Automatic"},
+  address:"205 Thornwillow Ct, Newmarket, ON L3Y 5R3", lat:44.0557697, lng:-79.4393836
+};
+// Breakdown location for the roadside demo (Hwy 401, Toronto). Image: Google Maps screenshot, attribution kept on screen.
+const BREAKDOWN = { address:"Hwy 401 Express near Exit 359, Toronto, ON", short:"Hwy 401 Express near Exit 359",
+  lat:43.715056, lng:-79.529167, image:"img/breakdown-401.jpg" };   // 43°42'54.2"N 79°31'45.0"W
+const vehicleText = () => { const v=MEMBER.vehicle; return `${v.year} ${v.make} ${v.model} · ${v.color}`; };
+const LOCTYPES = [
+  ["SHOULDER","Shoulder"],["ROADWAY","Roadway"],["MEDIAN","Median/Between Lanes of Traffic"],
+  ["PARKING_LOT","Parking Lot"],["PARKING_GARAGE","Parking Garage"],["RESIDENCE","Residence"]
+];
+
+/* ---------------- icons ---------------- */
+const I = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h4.5v-5.5h4V20h4.5V9.5"/></svg>',
+  homeOn:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.6 11h2.9v9.5h5v-6h3v6h5V11h2.9z"/></svg>',
+  tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 4h8l10 10-7 7L4 11z"/><circle cx="7.5" cy="8" r="1.2"/><path d="M12.5 15.6l-2.6-2.5a1.6 1.6 0 0 1 2.3-2.2l.3.3.3-.3a1.6 1.6 0 0 1 2.3 2.2z" fill="currentColor" stroke="none"/></svg>',
+  tow:'<svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M2 17V11h9V7h5l4 4h5v6"/><path d="M11 11h9"/><path d="M4 11 8 3"/><path d="M8 3l2 2"/><path d="M8 3v4"/><circle cx="7" cy="18" r="2.4"/><circle cx="21" cy="18" r="2.4"/><path d="M9.5 18h9"/></svg>',
+  towOn:'<svg viewBox="0 0 28 24" fill="currentColor"><path d="M8.4 2.2 4 10.4V11H2v6h2.3a3 3 0 0 1 5.4 0h8.6a3 3 0 0 1 5.4 0H26v-6l-5.3-.2L16.8 7H11v4H6.2l2.4-4.6.9.9 1-1-2.1-2.1zM7 15.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm14 0a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>',
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 1.5h-15z"/><path d="M10 21h4"/></svg>',
+  barcode:'<svg viewBox="0 0 20 14" fill="currentColor"><path d="M0 0h2v3H1v8h1v3H0zM18 0h2v14h-2v-3h1V3h-1z"/><rect x="4" y="2" width="1" height="10"/><rect x="6" y="2" width="2" height="10"/><rect x="9" y="2" width="1" height="10"/><rect x="11" y="2" width="2" height="10"/><rect x="14" y="2" width="1" height="10"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>',
+  sparkle:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 4l1.4 4.6L15 10l-4.6 1.4L9 16l-1.4-4.6L3 10l4.6-1.4zM17.5 3l.7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7zM17.5 14l.7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7z"/></svg>',
+  pump:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="9" height="16" rx="1"/><path d="M13 9h3l2 2.5V17a1.5 1.5 0 0 1-3 0v-3h-2M6.5 8h4"/></svg>',
+  bag:'<svg viewBox="0 0 36 30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="5" y="10" width="17" height="17" rx="1.5"/><path d="M9.5 10V8a4 4 0 0 1 8 0v2"/><rect x="13" y="16" width="11" height="11" rx="1.5" fill="#a6e3a1"/><path d="M16 16v-1.5a2.5 2.5 0 0 1 5 0V16"/><path d="M28 2v6M25 5h6"/></svg>',
+  towLine:'<svg viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M3 17v-4h11V9h6l5 4h6v4"/><path d="M6 13l6-9 2 2"/><circle cx="9" cy="18" r="2.6"/><circle cx="27" cy="18" r="2.6"/><path d="M12 18h12"/><path d="M33 4l1 2M36 6l-2 1M31 7l2-1"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  car:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16"/><path d="M5 16v3h3v-3M16 16v3h3v-3"/><circle cx="8" cy="14" r=".6" fill="currentColor"/><circle cx="16" cy="14" r=".6" fill="currentColor"/></svg>',
+  card:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19" stroke-width="3"/></svg>',
+  piggy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 12a7 6 0 0 1 12-4h3l-1 3 2 1v4h-2l-2 3h-2v-2H9v2H7l-1-3a6 6 0 0 1-2-4z"/><path d="M4 12H2.5"/><circle cx="15" cy="11" r=".7" fill="currentColor"/></svg>',
+  person:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9.5" cy="7" r="3.5"/><path d="M3 20c0-4 3-6.5 6.5-6.5 1 0 2 .2 2.8.6"/><path d="M17.5 21l-3.2-3.1a2 2 0 0 1 2.9-2.8l.3.3.3-.3a2 2 0 0 1 2.9 2.8z"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2.5l1.6 2.3 2.7-.6.6 2.7 2.4 1.4-1 2.6 1 2.6-2.4 1.4-.6 2.7-2.7-.6L12 21.5l-1.6-2.3-2.7.6-.6-2.7-2.4-1.4 1-2.6-1-2.6 2.4-1.4.6-2.7 2.7.6z"/></svg>',
+  bellS:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 1.5h-15z"/><path d="M10 21h4M12 3v2"/></svg>',
+  q:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.3a2.6 2.6 0 1 1 3.4 2.5c-.6.3-.9.8-.9 1.5v.7M12 17v.5"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/><circle cx="12" cy="11" r="2.5"/><path d="M8 16.5c1-1.6 2.4-2.4 4-2.4s3 .8 4 2.4"/></svg>',
+  phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 3.5h3.5l2 5-2.5 1.7a11 11 0 0 0 5.8 5.8L15.5 13.5l5 2V19a1.5 1.5 0 0 1-1.6 1.5C10.6 20 4 13.4 3.5 5.1A1.5 1.5 0 0 1 5 3.5z"/></svg>',
+  signout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4H5v16h9"/><path d="M10 12h11M17 8l4 4-4 4"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  locate:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>'
+};
+/* line illustrations: location types + contact cards (light-blue accent like the app) */
+const IL = {
+  SHOULDER:'<svg viewBox="0 0 32 32" fill="none" stroke="#3a3f45" stroke-width="1.3"><path d="M10 3v26"/><path d="M14 3v26" stroke-dasharray="3 2.5"/><rect x="17" y="3" width="6" height="26" fill="#a8c8ea" stroke="none"/><path d="M23 3v26"/></svg>',
+  ROADWAY:'<svg viewBox="0 0 32 32" fill="none" stroke="#3a3f45" stroke-width="1.3"><rect x="9" y="8" width="14" height="5" rx="1" fill="#a8c8ea"/><path d="M11 10.5h10"/><path d="M8 13 4 27M24 13l4 14M14 15l-1 4M18 15l1 4M12.5 22l-.8 4M19.5 22l.8 4"/><path d="M2 27l6-1" stroke="#a8c8ea" stroke-width="2"/></svg>',
+  MEDIAN:'<svg viewBox="0 0 32 32" fill="none" stroke="#3a3f45" stroke-width="1.2"><path d="M13 6l1.5-3h7L23 6v3h-10z" fill="#a8c8ea"/><path d="M6 14l1.5-3h7L16 14v3H6z" fill="#a8c8ea"/><path d="M12 23l1.5-3h7L22 23v3H12z" fill="#a8c8ea"/><path d="M14 9v1.5M22 9v1.5M7 17v1.5M15 17v1.5M13 26v1.5M21 26v1.5M5 20h22"/></svg>',
+  PARKING_LOT:'<svg viewBox="0 0 32 32" fill="none" stroke="#3a3f45" stroke-width="1.3"><circle cx="7" cy="9" r="3.5"/><path d="M6 11V7.3h1.4a1 1 0 0 1 0 2H6M7 12.5V24"/><path d="M12 20l2-5h11l2 5v4H12z" fill="#a8c8ea"/><path d="M12 20h15"/><path d="M3 25h27"/></svg>',
+  PARKING_GARAGE:'<svg viewBox="0 0 32 32" fill="none" stroke="#3a3f45" stroke-width="1.3"><path d="M4 28V10l12-5 12 5v18"/><circle cx="16" cy="9" r="2.5"/><path d="M15.3 10.5V7.8h1a.8.8 0 0 1 0 1.6h-1"/><path d="M8 14h16M8 14v14M24 14v14M8 17h16"/><path d="M10 25l1.5-4h9l1.5 4v3H10z" fill="#a8c8ea"/></svg>',
+  RESIDENCE:'<svg viewBox="0 0 32 32" fill="none" stroke="#3a3f45" stroke-width="1.3"><path d="M3 16 13 8l10 8"/><path d="M5 15v12h16V15"/><rect x="11" y="20" width="4" height="7" fill="#a8c8ea"/><rect x="7" y="18" width="3" height="3"/><rect x="16.5" y="18" width="3" height="3"/><path d="M27 27v-6"/><path d="M27 12c-2 3-2.5 6-1.5 8.5h3c1-2.5.5-5.5-1.5-8.5z" fill="#a8c8ea"/><path d="M2 27h28"/></svg>',
+  building:'<svg viewBox="0 0 48 48" fill="none" stroke="#333" stroke-width="1.8"><rect x="12" y="6" width="24" height="36"/><path d="M14 3h20" stroke-width="1.5"/><path d="M17 12h2M23 12h2M29 12h2M17 18h2M23 18h2M29 18h2M17 24h2M23 24h2M29 24h2M17 30h2M23 30h2M29 30h2"/><rect x="20" y="35" width="8" height="7" fill="#a8c8ea"/><path d="M6 42h36"/></svg>',
+  support:'<svg viewBox="0 0 48 48" fill="none" stroke="#333" stroke-width="1.6"><circle cx="16" cy="16" r="7" fill="#fff"/><path d="M9 15a7 7 0 0 1 14 0" stroke="#2f6db1" stroke-width="3"/><path d="M9.5 17v3M22.5 17v3"/><path d="M22 20c-1 2-3 3-5 3"/><path d="M5 38c0-7 5-11 11-11s11 4 11 11z" fill="#fff"/><path d="M14 33h4" stroke="#7fb0e0" stroke-width="2"/><circle cx="32" cy="18" r="7" fill="#fff"/><path d="M25 17a7 7 0 0 1 14 0" stroke="#7fb0e0" stroke-width="3"/><path d="M25.5 19v3M38.5 19v3"/><path d="M26 23c1 2 3 3 5 3"/><path d="M21 42c0-7 5-11 11-11s11 4 11 11z" fill="#fff"/><path d="M30 37h4" stroke="#2f6db1" stroke-width="2"/></svg>',
+  callme:'<svg viewBox="0 0 48 48" fill="none" stroke="#333" stroke-width="1.6" stroke-linejoin="round"><rect x="13" y="4" width="20" height="38" rx="3.5" fill="#fff"/><path d="M13 10h20M13 35h20"/><circle cx="23" cy="38.5" r="1.3" fill="#333"/><path d="M18 17.5h4l1.5 3.5-2 1.3a8 8 0 0 0 4 4l1.3-2 3.5 1.5v4a1.3 1.3 0 0 1-1.4 1.2A12 12 0 0 1 16.8 18.9a1.3 1.3 0 0 1 1.2-1.4z" fill="#a8c8ea"/><path d="M36 13a7 7 0 0 1 4 6M35 17a3 3 0 0 1 1.6 2.4" stroke="#2f6db1" stroke-width="2" stroke-linecap="round"/></svg>',
+  chat:'<svg viewBox="0 0 48 48" fill="none" stroke="#333" stroke-width="1.6" stroke-linejoin="round"><path d="M4 8h26v17H14l-7 6v-6H4z" fill="#fff"/><path d="M9 14h16M9 19h11"/><path d="M18 25v5h16l7 6v-6h3V14h-14" fill="#a8c8ea"/><circle cx="25" cy="33" r=".8" fill="#333"/><circle cx="29" cy="33" r=".8" fill="#333"/><circle cx="33" cy="33" r=".8" fill="#333"/></svg>'
+};
+const TRUCK = `<svg width="250" height="140" viewBox="0 0 250 140" fill="none">
+  <g stroke="#3b6aa0" stroke-width="1.2" opacity=".9">
+    <path d="M40 112V70h16v42M56 112V52h20v60M76 112V78h12v34M118 112V40h22v72M140 112V60h16v52M186 112V68h18v44"/>
+    <path d="M60 60h12M60 68h12M60 76h12M122 48h14M122 56h14M122 64h14M190 76h10M190 84h10"/>
+    <path d="M34 34a8 8 0 0 1 15-2 6 6 0 0 1 9 5H30a5 5 0 0 1 4-3zM150 28a9 9 0 0 1 17-2 6 6 0 0 1 9 5h-30a5 5 0 0 1 4-3zM196 46a8 8 0 0 1 15-2 6 6 0 0 1 8 5h-27a5 5 0 0 1 4-3z"/>
+    <path d="M218 112V84M212 96l6-12 6 12M213 104l5-10 5 10"/>
+  </g>
+  <g fill="#3f7d63"><circle cx="30" cy="92" r="9"/><circle cx="30" cy="104" r="8"/></g><path d="M30 104v10" stroke="#3f7d63" stroke-width="2"/>
+  <path d="M140 96 L196 62 L203 70 L150 104z" fill="#2c3f9b"/><path d="M196 62l8-6 4 4-5 9" fill="#24338a"/>
+  <path d="M206 61v16" stroke="#cfd6e0" stroke-width="2"/><path d="M202 77h8l-4 6z" fill="#cfd6e0"/>
+  <path d="M30 116V96l10-4 20-16h36v24h104l8 8v8H30z" fill="#fff" stroke="#c9ced6"/>
+  <path d="M64 80h28v16H52z" fill="#9fd0f0"/><path d="M75 82c3-2 7-1 8 2l-2 6h-7z" fill="#2c3f6e"/><circle cx="80" cy="80" r="3.5" fill="#c58c62"/>
+  <path d="M30 108h178" stroke="#2c3f9b" stroke-width="5"/><path d="M30 104h178" stroke="#d0262b" stroke-width="1.8"/>
+  <rect x="98" y="72" width="7" height="28" fill="#e9ecf1" stroke="#c9ced6"/>
+  <rect x="112" y="100" width="46" height="18" fill="#e3e6ec" stroke="#b9bfc8"/>
+  <circle cx="58" cy="118" r="13" fill="#2b2f36"/><circle cx="58" cy="118" r="6" fill="#c9ced6"/><circle cx="58" cy="118" r="2" fill="#2b2f36"/>
+  <circle cx="182" cy="118" r="13" fill="#2b2f36"/><circle cx="182" cy="118" r="6" fill="#c9ced6"/><circle cx="182" cy="118" r="2" fill="#2b2f36"/>
+  <rect x="204" y="100" width="6" height="4" fill="#d0262b"/><path d="M28 104h6" stroke="#f4c542" stroke-width="3"/>
+  <path d="M20 132h210" stroke="#c9ced6" stroke-width="2.5"/>
+</svg>`;
+const GIFTART = `<svg width="92" height="118" viewBox="0 0 92 118"><g transform="rotate(-8 46 40)"><rect x="6" y="8" width="80" height="54" rx="7" fill="#c41d2e"/><path d="M14 42c14-16 34-22 60-18" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round"/><rect x="6" y="8" width="80" height="54" rx="7" fill="none" stroke="rgba(255,255,255,.35)"/></g>
+  <g transform="rotate(6 50 86)"><rect x="12" y="62" width="76" height="48" rx="6" fill="#fff"/><circle cx="28" cy="78" r="6" fill="#e2413a"/><circle cx="42" cy="90" r="5" fill="#f2a516"/><circle cx="58" cy="76" r="6" fill="#58a83d"/><circle cx="72" cy="92" r="5" fill="#7b3fa0"/><rect x="24" y="96" width="44" height="5" rx="2" fill="#d9dde3"/></g></svg>`;
+
+/* ---------------- state ---------------- */
+let S, MAP=null;
+function init(){
+  if(MAP){ MAP.remove(); MAP=null; }
+  S = { screen:"login", step:0, tab:"home", drawer:false, sheet:false, locType:null,
+        rsa:null, callback:null, ringing:false, toast:null, chat:[], chatStarted:false, escalated:false, secs:4 };
+  render();
+}
+function log(){ /* event inspector removed from the demo view */ }
+
+/* ---------------- shared pieces ---------------- */
+function statusBar(bg, dark){ return `<div class="status" style="background:${bg};color:${dark?"#222":"#fff"}"><span>12:46</span><span>●●●● 5G ▮</span></div>`; }
+function tabbar(){
+  const t=[["home","Home",I.home,I.homeOn],["rewards","Rewards",I.tag,I.tag],["roadside","Roadside",I.tow,I.towOn],["mystarauto","MyStarAuto",I.menu,I.menu]];
+  return `<nav class="tabbar">${t.map(([id,l,ic,on])=>`<button class="${S.tab===id?"on":""}" data-tab="${id}">${S.tab===id?on:ic}<span>${l}</span></button>`).join("")}</nav>`;
+}
+function nav(title, back, cancel){
+  return `<div class="nav">${back?`<button class="bk" data-go="${back}" aria-label="Back">${I.back}</button>`:""}<h1>${title}</h1>${cancel?`<span class="cx" data-go="${cancel}">Cancel</span>`:""}</div>`;
+}
+const NAVY="#0f2a43";
+
+/* ---------------- screens ---------------- */
+const SCREENS = {
+  login(){
+    if(S.step===1) return `${statusBar("#2554a3")}<div class="login">
+      <div class="brand"><div class="badge">SA</div><h2>Verify it's you</h2><p>We sent a code to the phone ending 0142</p></div>
+      <div class="card"><div class="mfa"><span>4</span><span>8</span><span>2</span><span>1</span><span>7</span><span>3</span></div>
+      <button class="btn primary" data-act="mfa">Verify</button></div></div>`;
+    return `${statusBar("#2554a3")}<div class="login">
+      <div class="brand"><div class="badge">SA</div><h2>Welcome to StarAuto</h2><p>One sign-in for the app and the StarAuto website</p></div>
+      <div class="card">
+        <div class="field"><small>Email</small>${MEMBER.email}</div>
+        <div class="field"><small>Password</small>••••••••••</div>
+        <button class="btn primary" data-act="login">Sign in</button>
+        <div style="text-align:center;font-size:11px;color:var(--muted)">Continue as guest</div>
+      </div></div>`;
+  },
+
+  home(){
+    return `${statusBar("#7a5f2c")}<div class="body">
+      <div class="hg">
+        <div class="row"><span class="mark">SA</span><span class="div"></span><span class="tier">${MEMBER.level}</span>
+          <span class="bell" data-act="bell" aria-label="Notifications">${I.bell}</span></div>
+        <div class="wb">Welcome Back</div>
+        <div class="row"><span class="nm">${MEMBER.name}</span><span class="mc" data-go="card">${I.barcode}Member Card</span></div>
+      </div>
+      <div class="sec"><h3>What's New</h3>
+        <div class="car">
+          <div class="promo blue"><h4>New! StarAuto Gift Card Store</h4><p>Buy or reload gift cards for groceries, dining and more and get 5% back in StarAuto Dollars.</p><span class="art">${GIFTART}</span><span class="lm">Learn More</span></div>
+          <div class="promo grey"><h4>Save on Mobile Plans</h4><p>Members save on select 5G+ mobile plans. Conditions apply.</p><span class="lm">Learn More</span></div>
+        </div></div>
+      <div class="band sec"><h3>Save 3¢/L on Fuel &amp; More!</h3>
+        <div class="car">
+          <div class="oc"><span class="fuel">${I.pump}</span><div class="t">Your Fuel Savings</div><div class="amt">${MEMBER.fuelSavings}</div><span class="link">Learn More About Fuel Savings</span></div>
+          <div class="oc"><span class="badge">Save<br>10%</span><div class="t">In-Store Purchases</div><div class="d">Save on snacks for your roadtrip</div><span class="link">Learn More About In-Store</span></div>
+        </div></div>
+      <div class="saved">${I.sparkle}<div><b>You've saved ${MEMBER.saved}!</b><span>See Your Recent Transactions</span></div></div>
+      <div class="glance"><h3>Your Membership at a Glance</h3>
+        <div class="tiles">
+          <div class="tile"><div class="top" style="background:#a6e3a1">${I.bag}</div><div class="lb">Rewards Balance</div><div class="v">$${MEMBER.starDollars}</div></div>
+          <div class="tile" data-tab="roadside" style="cursor:pointer"><div class="top" style="background:#a7c8e0">${I.towLine}</div><div class="lb">Roadside Calls Used</div><div class="v">${MEMBER.roadsideUsed}</div></div>
+        </div></div>
+    </div>${tabbar()}`;
+  },
+
+  rewards(){
+    return `${statusBar(NAVY)}${nav("Rewards")}<div class="gbody">
+      <div class="card"><div class="ch">Rewards Balance</div><div class="eta" style="margin-top:0">$${MEMBER.starDollars}</div><div class="hint" style="margin:4px 0 0">StarAuto Dollars available to redeem.</div></div>
+      <div class="card"><div class="ch">You've saved ${MEMBER.saved}</div><div class="hint" style="margin:0">Fuel savings ${MEMBER.fuelSavings} this year.</div></div>
+      <div class="hint">Rewards isn't part of this demo.</div>
+    </div>${tabbar()}`;
+  },
+
+  roadside(){
+    return `${statusBar(NAVY)}<div class="rs">
+      <div class="ttl">Roadside Assistance</div>
+      <div class="truck">${TRUCK}</div>
+      <h2>StarAuto Roadside Assistance Is Here to Help</h2>
+      <p class="lead">StarAuto accepts online requests for roadside 24 hours a day so you can be confident your service request will be handled promptly.</p>
+      <hr>
+      <div class="two">
+        <div><div class="sf">${I.warn}Safety First</div><div class="sm">Make sure you're in a safe location before requesting assistance</div></div>
+        <div><div class="sm" style="margin-top:0">If you're experiencing an emergency or are in an unsafe location</div><div class="call">Call: 1-800-555-0100</div></div>
+      </div>
+      <div class="foot"><button class="cta big" data-go="location">Request Roadside Assistance Now</button></div>
+    </div>${tabbar()}`;
+  },
+
+  location(){
+    return `${statusBar(NAVY)}${nav("Select Breakdown Location","roadside","roadside")}
+      <div class="mapwrap"><img class="bmap" src="${BREAKDOWN.image}" alt="Breakdown location on Hwy 401" style="transform:scale(${S.mapZoom||1})">
+        <div class="mattr">Imagery © Google · ${BREAKDOWN.lat.toFixed(6)}, ${BREAKDOWN.lng.toFixed(6)}</div>
+        <div class="mctl"><button data-act="locate" aria-label="My location">${I.locate}</button>
+          <div class="zm"><button data-act="zin" aria-label="Zoom in">+</button><button data-act="zout" aria-label="Zoom out">−</button></div></div>
+      </div>
+      <div class="mfoot"><div class="addrbox">${BREAKDOWN.address}</div>
+        <button class="cta" data-act="openSheet">Proceed to Select Location Type</button></div>
+      ${S.sheet?`<div class="shade" data-act="closeSheet"></div><div class="sheet"><div class="hd"></div>
+        <div class="sh">Select The Type of Location<span class="x" data-act="closeSheet">${I.x}</span></div>
+        ${LOCTYPES.map(([k,l])=>`<div class="lt" data-ltype="${k}"><span class="ic">${IL[k]}</span><b>${l}</b></div>`).join("")}
+      </div>`:""}`;
+  },
+
+  confirm(){
+    const v=MEMBER.vehicle, lt=(LOCTYPES.find(x=>x[0]===S.locType)||["",""])[1];
+    return `${statusBar(NAVY)}${nav("Confirm Request","location","roadside")}<div class="gbody">
+      <div class="card"><div class="ch">${I.pin}Breakdown Location<span class="ed" data-go="location">Edit</span></div>
+        <div class="ad">${BREAKDOWN.address}</div>${lt?`<span class="chip">${lt}</span>`:""}</div>
+      <div class="card"><div class="ch">${I.car}Vehicle<span class="ed">Edit</span></div>
+        <div class="kvs"><span>Type</span><b>${v.type}</b><span>Year</span><b>${v.year}</b><span>Make</span><b>${v.make}</b>
+          <span>Model</span><b>${v.model}</b><span>Colour</span><b>${v.color}</b><span>Drive Line</span><b>${v.drive}</b></div></div>
+      <div class="card"><div class="ch">${I.phone}Contact Number</div><div class="ad">${callNumber()}</div></div>
+      <div class="hint">A roadside specialist will call you to confirm your request. Your details are already on their screen.</div>
+      <button class="cta big" data-act="submitRsa">Submit Request${isLive()?'<span class="livebadge">LIVE</span>':""}</button>
+    </div>`;
+  },
+
+  rsaSent(){
+    const cb=S.callback||{};
+    return `${statusBar(NAVY)}<div class="done">
+      <div class="ok">${I.check}</div>
+      <h2>Request Received</h2>
+      <p>${cb.live?`A roadside specialist is calling you at <b>${callNumber()}</b> to confirm the details.`:`Tap <b>Call Me Now</b> and a roadside specialist will call you at <b>${callNumber()}</b> to confirm the details.`}</p>
+      <p>Stay in a safe place with your hazard lights on.</p>
+      <div class="ref">Request ${S.rsa.id}</div>
+      ${memberBox()}
+      <div class="foot">
+        ${callNowBtn()}
+        <button class="cta ghost" data-go="rsaStatus">View Request Status</button>
+      </div></div>`;
+  },
+
+  rsaStatus(){
+    const r=S.rsa, lt=(LOCTYPES.find(x=>x[0]===S.locType)||["","—"])[1];
+    return `${statusBar(NAVY)}${nav("Request Status")}<div class="gbody">
+      <div class="card"><span class="st-pill">Request received</span>
+        <div class="eta">Calling you now</div><div class="hint" style="margin:2px 0 0">A specialist confirms the details, then dispatches a driver.</div>
+        <div class="steps"><i class="on"></i><i></i><i></i><i></i></div>
+        <div class="kvs"><span>Request</span><b>${r.id}</b><span>Location</span><b>${BREAKDOWN.short}</b><span>Location type</span><b>${lt}</b><span>Vehicle</span><b>${vehicleText()}</b></div>
+      </div>
+      <div class="card cc go" data-act="callMember" style="box-shadow:none;margin:0"><span class="ci">${IL.callme}</span><div><b>Need to talk to us?</b><p>Contact Us has Call Me and Chat With Us.</p></div></div>
+    </div>${tabbar()}`;
+  },
+
+  contact(){
+    return `${statusBar(NAVY)}${nav("Contact Us","home")}<div class="gbody">
+      <div class="cc"><span class="ci">${IL.building}</span><div><b>StarAuto Centre Locations</b><p>Find the location and hours for any StarAuto centre across Canada.</p></div></div>
+      <div class="cc"><span class="ci">${IL.support}</span><div><b>Support</b><p>If you have feedback or experience any problems using the app, please let us know.</p></div></div>
+      <div class="cc go" data-act="callMember"><span class="ci">${IL.callme}</span><div><b>Call Me${isLive()?'<span class="livebadge">LIVE</span>':""}</b><p>Have a member care specialist call you back now. No hold, no repeating your details.</p></div></div>
+      <div class="cc go" data-act="chat"><span class="ci">${IL.chat}</span><div><b>Chat With Us</b><p>Message a member care specialist.</p></div></div>
+    </div>`;
+  },
+
+  cbSent(){
+    const cb=S.callback||{};
+    return `${statusBar(NAVY)}<div class="done">
+      <div class="ok" style="background:#2466a8">${I.phone.replace('stroke="currentColor"','stroke="#fff"')}</div>
+      <h2>${cb.live?"We're Calling You":"We'll Call You"}</h2>
+      <p>${cb.live?`A member care specialist is calling <b>${callNumber()}</b> now.`:`Tap <b>Call Me Now</b> and a member care specialist will call <b>${callNumber()}</b>.`}</p>
+      <p>They already have your membership details on screen.</p>
+      ${cb.ref?`<div class="ref">Reference ${cb.ref}</div>`:""}
+      ${memberBox()}
+      <div class="foot">
+        ${callNowBtn()}
+        <button class="cta ghost" data-go="contact">Back to Contact Us</button>
+      </div></div>`;
+  },
+
+  card(){
+    return `${statusBar(NAVY)}${nav("Member Card","home")}<div class="body" style="background:var(--grey)">
+      <div class="mcard"><small>StarAuto Ontario</small><h2>${MEMBER.fullName}</h2><small>${MEMBER.level} Membership</small>
+        <div class="num">${MEMBER.memberNumber}</div><small>Member since ${MEMBER.since} · Valid through 06/2027</small></div>
+      <div style="padding:0 16px"><button class="cta" style="background:#000">Add to Wallet</button></div>
+    </div>`;
+  },
+
+  presenter(){
+    return `${statusBar(NAVY)}${nav("Security & App Settings","home")}<div class="gbody">${presenterPanel()}</div>`;
+  },
+
+  chat(){
+    const msgs=S.chat.map(m=> m.sys?`<div class="sys">${m.text}</div>`:`<div class="msg ${m.who}">${m.label?`<span class="who">${m.label}</span>`:""}${m.text}</div>`).join("");
+    const qrs = S.escalated ? [] : ["What does Plus cover?","Renew my membership","Talk to a person"];
+    return `${statusBar(NAVY)}${nav("Chat With Us","contact")}
+      <div class="chat" id="chatlog">${msgs}</div>
+      ${qrs.length?`<div class="qr">${qrs.map(q=>`<button data-qr="${q}">${q}</button>`).join("")}</div>`:""}
+      <div class="composer"><input id="chatin" placeholder="Type a message"><button data-act="send">Send</button></div>`;
+  },
+
+  oncall(){
+    const rs = S.callback && S.callback.kind==="roadside";
+    return `<div class="ring" style="justify-content:flex-start;gap:14px"><div class="avatar" style="margin-top:20px">SA</div><h2>StarAuto ${rs?"Roadside":"Member Care"}</h2><p>Priya · 00:${String(S.secs).padStart(2,"0")}</p>
+      <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:14px;font-size:13px;line-height:1.45;margin-top:20px">“Hi ${MEMBER.name}, it's Priya from StarAuto. ${rs?`I have your request for the ${MEMBER.vehicle.make} ${MEMBER.vehicle.model} at ${BREAKDOWN.short}. Are you somewhere safe?`:`I can see your ${MEMBER.level} membership. How can I help?`}”</div>
+      <div style="flex:1"></div><div class="acts"><button style="background:var(--red)" data-act="hang">✕</button></div></div>`;
+  }
+};
+
+function callNowBtn(){
+  const cb=S.callback;
+  if(cb&&cb.live) return `<button class="cta" disabled>Calling you now…</button>`;
+  return `<button class="cta big" data-act="callNow"${S.busy?" disabled":""}>${I.phone.replace('stroke="currentColor"','stroke="#fff" width="18" height="18" style="vertical-align:-3px;margin-right:8px"')}${S.busy?"Requesting…":"Call Me Now"}${isLive()?'<span class="livebadge">LIVE</span>':""}</button>`;
+}
+function memberBox(){
+  const cb=S.callback||{};
+  return `<div class="mbox">
+      <div class="mrow"><span>Name</span><b>${MEMBER.fullName}</b></div>
+      <div class="mrow"><span>Member ID</span><b>${MEMBER.memberNumber}</b></div>
+      <div class="mrow"><span>Member status</span><b>${MEMBER.status} · ${MEMBER.level}</b></div>
+      <div class="mrow"><span>Authenticated</span><b class="auth">✓ Yes</b></div>
+    </div>
+    ${cb.ref?`<div class="sent">${cb.live?"Sent to Genesys Cloud with your call request":"Not connected to Genesys Cloud. No call was placed."}</div>`:""}`;
+}
+function drawer(){
+  return `<div class="dshade" data-act="closeDrawer"></div><div class="drawer">
+    <div class="dh"><span class="mini"></span><div><b>MyStarAuto</b><small>${MEMBER.name}</small></div><span class="x" data-act="closeDrawer">${I.x}</span></div>
+    <div class="mi b" data-dgo="card">${I.card}<span>Membership</span></div>
+    <div class="mi b" data-dgo="rewards">${I.piggy}<span>Rewards History</span></div>
+    <div class="mi b">${I.car}<span>Auto</span></div>
+    <div class="mi b">${I.person}<span>Account Settings</span></div>
+    <div class="dgap"></div>
+    <div class="mi r" data-dgo="presenter">${I.gear}<span>Security &amp; App Settings</span></div>
+    <div class="mi r">${I.bellS}<span>Notification Preferences</span></div>
+    <div class="mi r">${I.q}<span>FAQs</span></div>
+    <div class="mi r">${I.shield}<span>Legal</span></div>
+    <div class="mi r" data-dgo="contact">${I.phone}<span>Contact Us</span></div>
+    <div class="dline"></div>
+    <div class="mi so" data-act="signout">${I.signout}<span>Sign Out</span></div>
+    <div class="dline" style="margin:0"></div>
+    <div class="dfoot">App version 3.0.1<br><br>Concept demo · fictional member data.<br>Not a StarAuto production app.<a>Privacy Policy</a></div>
+  </div>`;
+}
+
+const THEME = {home:"#7a5f2c",login:"#2554a3"};
+function render(){
+  const sc=document.getElementById("screen");
+  if(MAP){ MAP.remove(); MAP=null; }
+  let html = SCREENS[S.screen]();
+  if(S.drawer) html += drawer();
+  if(S.ringing) html += `<div class="ring"><div style="text-align:center"><div class="avatar pulse" style="margin:0 auto">SA</div><h2>${(LIVE.callerIdName)||"StarAuto Member Care"}</h2><p>Calling ${callNumber()}</p></div><div class="acts"><button style="background:var(--red)" data-act="decline">✕</button><button style="background:var(--ok)" data-act="answer">✆</button></div></div>`;
+  if(S.toast) html += `<div class="toast"><div class="ti">SA</div><div><b>${S.toast[0]}</b><br>${S.toast[1]}</div></div>`;
+  sc.innerHTML = html;
+  const tc=document.querySelector('meta[name="theme-color"]'); if(tc) tc.content = THEME[S.screen]||NAVY;
+  const cl=document.getElementById("chatlog"); if(cl) cl.scrollTop=cl.scrollHeight;
+  const ci=document.getElementById("chatin"); if(ci) ci.addEventListener("keydown",e=>{if(e.key==="Enter")send(ci.value)});
+  mountMap();
+}
+function mountMap(){
+  const el=document.getElementById("lmap"); if(!el) return;
+  if(!window.L){ el.style.background="repeating-linear-gradient(35deg,#eceae6 0 38px,#fff 38px 46px)"; return; }
+  MAP = L.map(el,{zoomControl:false,attributionControl:true}).setView([MEMBER.lat,MEMBER.lng],16);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(MAP);
+  MAP.attributionControl.setPrefix(false);
+}
+function go(s){
+  S.drawer=false; S.sheet=false; S.screen=s;
+  if(["home","rewards"].includes(s)) S.tab=s;
+  if(["roadside","location","confirm","rsaSent","rsaStatus"].includes(s)) S.tab="roadside";
+  render();
+}
+function later(ms,fn){ setTimeout(()=>{fn(); render();},ms); }
+function toast(t,m,ms){ S.toast=[t,m]; render(); setTimeout(()=>{S.toast=null; render();},ms||2200); }
+
+/* ---------------- sign-in (mock) ---------------- */
+function doLogin(){ S.step=1; render(); }
+function doMfa(){ S.screen="home"; S.tab="home"; render(); }
+
+/* ---------------- callback data ---------------- */
+function cbData(roadside){
+  const v=MEMBER.vehicle;
+  const d = { customerName:MEMBER.fullName, memberNumber:MEMBER.memberNumber.replace(/ /g,""), membershipLevel:MEMBER.level, memberStatus:MEMBER.status, authenticated:"true",
+    vehicle:`${v.year} ${v.make} ${v.model} - ${v.color}`, requestedFrom:"mobile_app" };
+  if(S.rsa){ d.rsaRequestId=S.rsa.id; d.rsaStatus=S.rsa.status; }
+  if(roadside){
+    Object.assign(d,{ locationType:(LOCTYPES.find(x=>x[0]===S.locType)||["",""])[1], breakdownAddress:BREAKDOWN.address,
+      gpsLat:String(BREAKDOWN.lat), gpsLng:String(BREAKDOWN.lng),
+      vehicleType:v.type, vehicleYear:v.year, vehicleMake:v.make, vehicleModel:v.model, vehicleColor:v.color, vehicleDriveLine:v.drive });
+  }
+  return d;
+}
+const attrs = () => cbData(false);
+
+/* ---------------- roadside + call me ---------------- */
+async function submitRsa(){
+  S.rsa = { id:"RSA-"+String(new Date().getFullYear()).slice(2)+"-"+String(Math.floor(1000000+Math.random()*8999999)), status:"RECEIVED" };
+  S.callback=null; go("rsaSent");
+}
+async function callMember(){
+  S.callback=null; go("cbSent");
+}
+async function requestCallback(kind){
+  const ref="CB-"+Math.floor(100000+Math.random()*899999);
+  S.callback={kind,ref,live:false};
+  if(!(isLive() && GC.token())){
+    if(LIVE.mode==="live") toast("Not connected","Genesys isn't connected, so no call was placed. Open MyStarAuto → Security & App Settings.",3200);
+    return;
+  }
+  const rs = kind==="roadside";
+  const queueId = rs ? (LIVE.roadsideQueueId||LIVE.queueId) : LIVE.queueId;
+  const queueName = rs ? (LIVE.roadsideQueueName||LIVE.queueName) : LIVE.queueName;
+  const body={ queueId, callbackUserName:MEMBER.fullName, callbackNumbers:[cbNumber()], countryCode:"CA",
+    data:{...cbData(rs), targetQueue:queueName||"", demoRef:ref} };
+  if(LIVE.callerId) body.callerId=LIVE.callerId;
+  if(LIVE.callerIdName) body.callerIdName=LIVE.callerIdName;
+  S.toast=["Requesting a call","Contacting Genesys Cloud…"]; render();
+  try{
+    const res=await fetch(`https://api.${LIVE.region}/api/v2/conversations/callbacks`,{method:"POST",
+      headers:{"Authorization":"Bearer "+GC.token(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const json=await res.json().catch(()=>({}));
+    S.toast=null;
+    if(res.status===401) GC.clear();
+    if(!res.ok) throw new Error("HTTP "+res.status+" "+(json.message||""));
+    S.callback.live=true;
+    console.info("Callback created",json);
+  }catch(e){
+    console.warn("Live callback failed, using the simulated call",e);
+    S.toast=null; toast("Call request failed","Call request failed ("+e.message.slice(0,60)+"). No call was placed.",3200);
+  }
+}
+function ring(){ later(600,()=>{ S.ringing=true; }); }
+
+/* ---------------- chat (mock fallback when Web Messenger is off) ---------------- */
+function openChat(){
+  S.screen="chat"; S.drawer=false;
+  if(!S.chatStarted){
+    S.chatStarted=true;
+    S.chat.push({sys:true,text:"Secure chat · verified member"});
+    later(700,()=>S.chat.push({who:"bot",label:"StarAuto Virtual Assistant",text:`Hi ${MEMBER.name}, thanks for being a ${MEMBER.level} member since ${MEMBER.since}. What can I help you with today?`}));
+  }
+  render();
+}
+function botReply(q){
+  const t=q.toLowerCase();
+  if(t.includes("person")||t.includes("agent")||t.includes("human")){
+    S.escalated=true;
+    later(900,()=>{ S.chat.push({sys:true,text:"Priya from StarAuto joined"}); S.chat.push({who:"agent",label:"Priya · StarAuto Member Care",text:`Hi ${MEMBER.name}, I have your membership in front of me. What can I do for you?`}); });
+    return "Connecting you with a member care specialist. They'll see everything we've discussed.";
+  }
+  if(t.includes("plus")||t.includes("cover")) return "Plus includes towing up to 200 km and 4 service calls a year. Want details on battery or fuel delivery?";
+  if(t.includes("renew")) return `Your ${MEMBER.level} membership renews in June. I can turn on auto-renewal or connect you with someone to change your level.`;
+  return `I can help with roadside, membership, billing or rewards. You can also tap "Talk to a person" any time.`;
+}
+function send(text){
+  text=(text||"").trim(); if(!text) return;
+  S.chat.push({who:"me",text}); render();
+  later(700,()=>{ const r=botReply(text); const ag=S.escalated&&!r.startsWith("Connecting");
+    S.chat.push({who:ag?"agent":"bot",label:ag?"Priya · StarAuto Member Care":"StarAuto Virtual Assistant",text:r}); });
+}
+
+/* ---------------- event wiring ---------------- */
+document.getElementById("screen").addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab],[data-go],[data-dgo],[data-act],[data-ltype],[data-qr]"); if(!t) return;
+  const d=t.dataset;
+  if(d.tab){
+    if(d.tab==="mystarauto"){ S.drawer=true; return render(); }
+    if(d.tab==="roadside") return go(S.rsa?"rsaStatus":"roadside");
+    return go(d.tab);
+  }
+  if(d.go) return go(d.go);
+  if(d.dgo) return go(d.dgo);
+  if(d.ltype){ S.locType=d.ltype; return go("confirm"); }
+  if(d.qr) return send(d.qr);
+  switch(d.act){
+    case "login": return doLogin();
+    case "mfa": return doMfa();
+    case "bell": return toast("Notifications","You're all caught up.");
+    case "openSheet": S.sheet=true; return render();
+    case "closeSheet": S.sheet=false; return render();
+    case "locate": S.mapZoom=1; return render();
+    case "zin": S.mapZoom=Math.min(3,(S.mapZoom||1)+0.5); return render();
+    case "zout": S.mapZoom=Math.max(1,(S.mapZoom||1)-0.5); return render();
+    case "closeDrawer": S.drawer=false; return render();
+    case "signout": return init();
+    case "submitRsa": return submitRsa();
+    case "callMember": return callMember();
+    case "callNow": if(S.busy) return; S.busy=true; render();
+      return requestCallback(S.screen==="rsaSent"?"roadside":"member").finally(()=>{ S.busy=false; render(); });
+    case "chat": S.drawer=false; return WEB.ready() ? WEB.open() : openChat();
+    case "send": { const i=document.getElementById("chatin"); return send(i&&i.value); }
+    case "ring": return ring();
+    case "answer": S.ringing=false; S.screen="oncall"; S.secs=4; return render();
+    case "decline": S.ringing=false; return render();
+    case "hang": return go(S.callback&&S.callback.kind==="roadside"?"rsaStatus":"contact");
+    case "gcConnect": return GC.login();
+    case "gcPaste": { const v=(document.getElementById("gcpaste")||{}).value; if(v&&v.trim()) GC.set(v.trim()); return render(); }
+    case "gcForget": GC.clear(); return render();
+    case "saveNum": { const v=((document.getElementById("cbnum")||{}).value||"").trim(); ls.set("cb_number",v); return toast("Saved","Calls will go to "+(v||"the config number")); }
+    case "resetDemo": return init();
+  }
+});
+document.getElementById("reset").addEventListener("click",init);
+
+/* ---------------- going live: work items ---------------- */
+const WORK = [
+  ["Create queue <b>StarAuto Demo – Member Care</b>; add the demo agent(s); set callback caller ID and auto-dial behaviour","Genesys admin","Star Telecom",0.5],
+  ["Build a callback script that shows <code>memberNumber</code>, <code>membershipLevel</code>, <code>rsaRequestId</code>, <code>rsaStatus</code>, <code>vehicle</code> from participant attributes","Scripter","Star Telecom",1],
+  ["Create an OAuth client: <b>Code Authorization + PKCE</b> <span class=\"verify\">verify grant name</span>; redirect URI = the GitHub Pages URL","Genesys admin","Star Telecom",0.25],
+  ["Create a role with only <code>Conversation &gt; Callback &gt; Create</code> <span class=\"verify\">verify permission</span>; assign to a presenter demo user (not an agent)","Genesys admin","Star Telecom",0.25],
+  ["Confirm an outbound-capable number (Genesys Cloud Voice or BYOC) dials Canadian mobiles","Telephony","Star Telecom",0.5],
+  ["Page: add a Mock / Live switch and a settings block (region, client ID, queue ID, script ID, phone to call)","This page","Star Telecom",0.5],
+  ["Page: PKCE sign-in for the presenter; keep the token in memory only","This page","Star Telecom",1],
+  ["Page: swap the mocked <code>submitCb()</code> for the live POST; show the real request and response in the inspector; fall back to mock on any error","This page","Star Telecom",1],
+  ["GitHub: repo, rename to <code>index.html</code>, enable Pages, set repo visibility (see risks)","GitHub","Star Telecom",0.5],
+  ["Dry run end to end: Call me → agent accepts → presenter's phone rings → script shows data. Repeat from the venue network","Demo","Star Telecom",1]
+];
+let WORKDONE = {};
+try { WORKDONE = JSON.parse(localStorage.getItem("golive-work")||"{}"); } catch(e) {}
+function renderWork(){
+  const done = WORK.filter((_,i)=>WORKDONE[i]).length;
+  document.getElementById("worklist").innerHTML = WORK.map(([t,w,o,h],i)=>
+    `<tr class="${WORKDONE[i]?"done":""}"><td>${i+1}</td><td>${t}</td><td class="where">${w}</td><td>${o}</td><td>${h} h</td>
+     <td><input type="checkbox" data-wk="${i}" ${WORKDONE[i]?"checked":""} aria-label="Mark task ${i+1} done"></td></tr>`).join("");
+  document.getElementById("wktotal").textContent = WORK.reduce((a,w)=>a+w[3],0)+" h";
+  document.getElementById("wkprog").textContent = `${done} of ${WORK.length} done`;
+  document.getElementById("wkbar").style.width = (done/WORK.length*100)+"%";
+}
+document.getElementById("worklist").addEventListener("change",e=>{
+  const i=e.target.dataset.wk; if(i===undefined) return;
+  WORKDONE[i]=e.target.checked;
+  try { localStorage.setItem("golive-work",JSON.stringify(WORKDONE)); } catch(err) {}
+  renderWork();
+});
+renderWork();
+
+function codeHl(src){ return src.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/(^|\s)(\/\/[^\n]*)/gm,'$1<span class="c">$2</span>'); }
+document.getElementById("liveconfig").innerHTML = codeHl(`// Settings block (placeholders — fill on the demo org)
+const LIVE = {
+  mode: "mock",                    // "mock" | "live"
+  region: "mypurecloud.com",       // US East demo org
+  clientId: "<PKCE client ID>",    // safe to commit, no secret
+  redirectUri: "https://<org>.github.io/<repo>/",
+  queueId: "<StarAuto Demo – Member Care queue ID>",
+  callbackNumber: "+1<presenter mobile>"
+};`);
+
+document.getElementById("livecode").innerHTML = codeHl(`// Live "Call me" — replaces the mocked submitCb()
+async function submitCbLive(token) {
+  const body = {
+    queueId: LIVE.queueId,
+    callbackUserName: MEMBER.fullName,
+    callbackNumbers: [LIVE.callbackNumber],
+    countryCode: "CA",
+    data: attrs()                  // same context the mock shows
+  };
+  log({ from: ["app","gc"], title: "LIVE: create callback",
+        ep: "POST /api/v2/conversations/callbacks", body });
+  const res = await fetch(\`https://api.\${LIVE.region}/api/v2/conversations/callbacks\`, {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token,
+               "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const json = await res.json();
+  if (!res.ok) { log({ from: ["gc","app"], title: "LIVE failed — falling back to mock", body: json });
+                 return submitCb(); }
+  log({ from: ["gc","app"], title: "LIVE: callback queued (" + res.status + ")", body: json });
+}`);
+
+/* ---------------- live mode: config + Genesys sign-in ---------------- */
+const LIVE = Object.assign({mode:"mock",region:"mypurecloud.com",grant:"pkce"}, window.DEMO_CONFIG||{});
+const ls = { get:k=>{try{return localStorage.getItem(k)}catch(e){return null}}, set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}} };
+const ss = { get:k=>{try{return sessionStorage.getItem(k)}catch(e){return null}},
+             set:(k,v)=>{try{sessionStorage.setItem(k,v)}catch(e){}},
+             del:k=>{try{sessionStorage.removeItem(k)}catch(e){}} };
+function cbNumber(){ return ls.get("cb_number") || LIVE.callbackNumber || ""; }
+function isLive(){ return LIVE.mode==="live" && !!LIVE.queueId && !!cbNumber(); }
+function callNumber(){
+  const n=cbNumber(); if(!n) return MEMBER.phone;
+  const d=n.replace(/\D/g,"");
+  return d.length===11 ? `+${d[0]} ${d.slice(1,4)}-${d.slice(4,7)}-${d.slice(7)}` : n;
+}
+const GC = {
+  _t:null,
+  redirect(){ return LIVE.redirectUri || (location.origin + location.pathname); },
+  token(){ return this._t || ss.get("gc_token"); },
+  set(t){ this._t=t; ss.set("gc_token",t); },
+  clear(){ this._t=null; ss.del("gc_token"); },
+  async login(){
+    if(!LIVE.clientId){ toast("Presenter","Add clientId to config.js, or paste a token"); return; }
+    const base=`https://login.${LIVE.region}/oauth/authorize?client_id=${encodeURIComponent(LIVE.clientId)}&redirect_uri=${encodeURIComponent(this.redirect())}`;
+    if(LIVE.grant==="implicit"){ location.href = base+"&response_type=token"; return; }
+    const rnd=new Uint8Array(32); crypto.getRandomValues(rnd);
+    const verifier=b64url(rnd); ss.set("gc_verifier",verifier);
+    const challenge=b64url(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier))));
+    location.href = base+`&response_type=code&code_challenge=${challenge}&code_challenge_method=S256`;
+  },
+  async handleReturn(){
+    const h=new URLSearchParams(location.hash.slice(1)), q=new URLSearchParams(location.search);
+    const clean=()=>history.replaceState(null,"",this.redirect()+(document.body.classList.contains("app-mode")?"?app=1":""));
+    if(h.get("access_token")){ this.set(h.get("access_token")); clean(); return; }
+    if(q.get("code") && ss.get("gc_verifier")){
+      try{
+        const res=await fetch(`https://login.${LIVE.region}/oauth/token`,{method:"POST",
+          headers:{"Content-Type":"application/x-www-form-urlencoded"},
+          body:new URLSearchParams({grant_type:"authorization_code",code:q.get("code"),redirect_uri:this.redirect(),
+            client_id:LIVE.clientId,code_verifier:ss.get("gc_verifier")})});
+        const j=await res.json(); if(j.access_token) this.set(j.access_token);
+      }catch(e){ console.warn("Token exchange failed",e); }
+      ss.del("gc_verifier"); clean();
+    }
+  }
+};
+function b64url(bytes){ return btoa(String.fromCharCode(...bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function presenterPanel(){
+  const t=GC.token();
+  return `<div class="presenter"><h4>Presenter tools</h4>
+    <div class="kv">Mode <b>${LIVE.mode==="live"?(isLive()?"Live callback":"Live (needs a phone number)"):"Mock"}</b></div>
+    <div class="kv">Genesys sign-in <b>${t?"Connected":"Not connected"}</b></div>
+    <div class="kv">Member care queue <b>${LIVE.queueName||LIVE.queueId||"—"}</b></div>
+    <div class="kv">Roadside queue <b>${LIVE.roadsideQueueName||(LIVE.roadsideQueueId?"set":"same as member care")}</b></div>
+    <div class="kv">Web Messenger <b>${WEB.enabled()?(WEB.ready()?"Loaded":"Loading…"):"Off (mock chat)"}</b></div>
+    <input id="cbnum" type="tel" placeholder="Phone to call, e.g. +14165550142" value="${cbNumber()}">
+    <button class="cta ghost" data-act="saveNum">Save phone number (this device only)</button>
+    ${t ? `<button class="cta ghost" data-act="gcForget">Disconnect Genesys</button>`
+        : `<button class="cta" data-act="gcConnect">Connect Genesys (${LIVE.grant})</button>
+           <textarea id="gcpaste" rows="2" placeholder="…or paste an access token"></textarea>
+           <button class="cta ghost" data-act="gcPaste">Use pasted token</button>`}
+    <button class="cta ghost" data-act="resetDemo">Reset demo</button></div>`;
+}
+
+/* ---------------- Genesys Web Messenger (chat) ---------------- */
+const WEB = {
+  loaded:false,
+  cfg(){ return Object.assign({chat:"mock",environment:"prod",deploymentId:""}, LIVE.webMessenger||{}); },
+  enabled(){ const c=this.cfg(); return c.chat==="web" && !!c.deploymentId; },
+  ready(){ return this.enabled() && this.loaded && typeof window.Genesys==="function"; },
+  load(){
+    if(!this.enabled()) return;
+    const c=this.cfg(), region=c.environment.replace(/^prod-/,"");
+    const host = region==="prod" ? "apps.mypurecloud.com" : `apps.${region}.pure.cloud`;
+    (function (g, e, n, es, ys) {
+      g["_genesysJs"] = e; g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
+      g[e].t = 1 * new Date(); g[e].c = es;
+      ys = document.createElement("script"); ys.async = 1; ys.src = n; ys.charset = "utf-8";
+      ys.onload = () => { WEB.loaded=true; }; ys.onerror = () => { WEB.loaded=false; console.warn("Web Messenger failed to load; using mock chat"); };
+      document.head.appendChild(ys);
+    })(window, "Genesys", `https://${host}/genesys-bootstrap/genesys.min.js`, { environment: c.environment, deploymentId: c.deploymentId });
+    Genesys("subscribe","Database.ready",()=>WEB.setAttrs());
+    Genesys("subscribe","Launcher.ready",()=>Genesys("command","Launcher.hide",{},()=>{},()=>{}));
+    Genesys("subscribe","Messenger.closed",()=>Genesys("command","Launcher.hide",{},()=>{},()=>{}));
+  },
+  setAttrs(){ if(!this.ready()) return; const a={...attrs(),entryPoint:"contact_us"}; Genesys("command","Database.set",{messaging:{customAttributes:a}}); return a; },
+  open(){ this.setAttrs(); Genesys("command","Messenger.open",{},()=>{},()=>openChat()); }
+};
+
+/* ---------------- app mode + install ---------------- */
+(function(){
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const q = new URLSearchParams(location.search);
+  if(standalone || q.has("app") || (innerWidth < 700 && !q.has("desk"))) document.body.classList.add("app-mode");
+  if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+GC.handleReturn().finally(()=>{ if(S) render(); });
+WEB.load();
+init();
+
+</script>
+</body>
+</html>
