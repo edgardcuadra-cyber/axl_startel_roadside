@@ -933,7 +933,7 @@ document.getElementById("screen").addEventListener("click",e=>{
     case "gcConnect": return GC.login();
     case "gcPaste": { const v=(document.getElementById("gcpaste")||{}).value; if(v&&v.trim()) GC.set(v.trim()); return render(); }
     case "gcForget": GC.clear(); return render();
-    case "saveNum": { const v=((document.getElementById("cbnum")||{}).value||"").trim(); ls.set("cb_number",v); return toast("Saved","Calls will go to "+(v||"the config number")); }
+    case "saveNum": { const v=((document.getElementById("cbnum")||{}).value||"").trim(); ls.set("cb_number",v); WEB.setAttrs(); return toast("Saved","Calls will go to "+(v||"the config number")); }
     case "resetDemo": return init();
   }
 });
@@ -1012,6 +1012,8 @@ const ss = { get:k=>{try{return sessionStorage.getItem(k)}catch(e){return null}}
              set:(k,v)=>{try{sessionStorage.setItem(k,v)}catch(e){}},
              del:k=>{try{sessionStorage.removeItem(k)}catch(e){}} };
 function cbNumber(){ return ls.get("cb_number") || LIVE.callbackNumber || ""; }
+// Phone in E.164 for Genesys (+1 assumed for 10-digit North American numbers); "" if none saved
+function e164(n){ const d=String(n||"").replace(/[^\d+]/g,""); if(!d) return ""; if(d.startsWith("+")) return d; if(d.length===10) return "+1"+d; if(d.length===11&&d.startsWith("1")) return "+"+d; return "+"+d; }
 function isLive(){ return LIVE.mode==="live" && !!LIVE.queueId && !!cbNumber(); }
 function callNumber(){
   const n=cbNumber(); if(!n) return MEMBER.phone;
@@ -1097,7 +1099,7 @@ const WEB = {
     // Launcher visibility is "Hide until triggered by business logic": hide it again when the member closes Messenger.
     Genesys("subscribe","Messenger.closed",()=>Genesys("command","Launcher.hide",{},()=>{},()=>{}));
   },
-  setAttrs(){ if(!this.enabled()||typeof window.Genesys!=="function") return; const a={...attrs(),entryPoint:"contact_us"}; Genesys("command","Database.set",{messaging:{customAttributes:a}}); return a; },
+  setAttrs(){ if(!this.enabled()||typeof window.Genesys!=="function") return; const a={...attrs(),entryPoint:"contact_us"}; const ph=e164(cbNumber()); if(ph) a.callerPhone=ph; Genesys("command","Database.set",{messaging:{customAttributes:a}}); return a; },
   fail(msg){ this.failed=true; this.pendingOpen=false; console.warn(msg); if(S){ toast("Chat unavailable",msg,3600); } },
   open(){
     if(this.failed) return this.fail("Web Messenger didn't load. Check the deployment and allowed domains.");
