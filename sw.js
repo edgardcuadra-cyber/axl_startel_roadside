@@ -1,6 +1,6 @@
 // Caches the app shell so the demo opens instantly and survives bad venue Wi-Fi.
 // Bump CACHE when you push changes so phones pick up the new version.
-const CACHE = "starauto-mobile-concept-v10";
+const CACHE = "starauto-mobile-concept-v11";
 const SHELL = [
   "./", "./index.html", "./config.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./img/breakdown-401.jpg"

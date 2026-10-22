@@ -33,7 +33,7 @@ window.DEMO_CONFIG = {
   // Messenger configuration: launcher visibility = "Hide until triggered by business logic".
   webMessenger: {
     chat: "web",                 // "mock" = scripted chat, "web" = Genesys Web Messenger
-    environment: "prod",         // US East (apps.mypurecloud.com)
-    deploymentId: "5dc5b4fc-7b77-4c8b-bef8-bf0015aaf6f6"
+    environment: "prod-usw2",    // US West 2 (apps.usw2.pure.cloud)
+    deploymentId: "f41b2c11-b44c-49d4-ba71-f1cc4d33b83c"
   }
 };
