@@ -15,6 +15,8 @@ All member data is fictional. Not a StarAuto production app.
 
 Each callback sends `data` with `customerName`, `memberNumber`, `membershipLevel`, `vehicle`, `requestedFrom` and `targetQueue` (the queue name, for the inbound flow's Transfer to ACD). Roadside adds `rsaRequestId`, `rsaStatus`, `locationType`, `breakdownAddress`, `gpsLat`, `gpsLng`, `vehicleType`, `vehicleYear`, `vehicleMake`, `vehicleModel`, `vehicleColor`, `vehicleDriveLine`.
 
+Chat With Us sets Web Messenger custom attributes: the same member fields plus `entryPoint` (`contact_us`) and `callerPhone` (the Presenter tools number in E.164, e.g. `+14165550142`). The inbound message flow passes `callerPhone` to the roadside AI agent as `caller_phone` and `callback_number`.
+
 If a live call fails, the app falls back to the mock.
 
 ## Files
